@@ -1,108 +1,119 @@
-import java.util.Scanner;
 import java.util.Stack;
+import java.util.Scanner;
+import java.lang.Math;
 
 public class Pemdas {
-
     public static void main(String[] args) {
-        Scanner scanner = new Scanner(System.in);
+        Scanner scan = new Scanner(System.in);
+        System.out.print("Enter infix to convert to postfix(without spaces! example: (1+2-3)): ");
+        String infix = scan.nextLine();
+        Convert convert = new Convert(infix);
 
-        System.out.println("Enter an equation:(must be separated with a space for example: 1 + 2 * ( 2 + 1 ) ");
-        String equation = scanner.nextLine();
+        String postfix = convert.convertPostfix();
 
-        System.out.println("The result of the equation is " + calculateEquation(equation));
+        double result = convert.evaluateExpression(postfix);
+        System.out.println(result);
+
+        scan.close();
+    }
+}
+
+class Convert {
+    private StringBuilder nResult = new StringBuilder();
+    private Stack<Character> operator = new Stack<>();
+    private Stack<String> operand = new Stack<>();
+    String passed;
+
+    public Convert(String passed) {
+        this.passed = passed;
     }
 
-    public static double calculateEquation(String equation) {
-        // Split the equation into tokens.
-        String[] tokens = equation.split(" ");
+    public String convertPostfix() {
+        for (int i = 0; i < passed.length(); i++) {
+            char c = passed.charAt(i);
 
-        // Evaluate the equation using the PEMDAS principle.
-        Stack<Character> operators = new Stack<>();
-        Stack<Double> operands = new Stack<>();
-
-        for (String token : tokens) {
-            if (token.equals("(")) {
-                operators.push(token.charAt(0));
-            } else if (token.equals(")")) {
-                while (operators.peek() != '(') {
-                    char operator = operators.pop();
-                    double number2 = operands.pop();
-                    double number1 = operands.pop();
-
-                    if (operator == '+') {
-                        operands.push(number1 + number2);
-                    } else if (operator == '-') {
-                        operands.push(number1 - number2);
-                    } else if (operator == '*') {
-                        operands.push(number1 * number2);
-                    } else if (operator == '/') {
-                        operands.push(number1 / number2);
-                    } else if (operator == '^') {
-                        operands.push(Math.pow(number1, number2));
-                    }
+            if (Character.isDigit(c)) {
+                StringBuilder multi = new StringBuilder();
+                while (i < passed.length() && Character.isDigit(passed.charAt(i))) { // this adds and appends the character whether it is multi digit or single.
+                    multi.append(passed.charAt(i));
+                    i++;// increment so the count will iterate correctly.
                 }
-                operators.pop();
-            } else if (token.equals("^")) {
-                operators.push(token.charAt(0));
-            } else if (token.equals("+") || token.equals("-") || token.equals("*") || token.equals("/") || token.equals("%")) {
-                while (!operators.isEmpty() && getPrecedence(operators.peek()) >= getPrecedence(token.charAt(0))) {
-                    char operator = operators.pop();
-                    double number2 = operands.pop();
-                    double number1 = operands.pop();
-
-                    if (operator == '+') {
-                        operands.push(number1 + number2);
-                    } else if (operator == '-') {
-                        operands.push(number1 - number2);
-                    } else if (operator == '*') {
-                        operands.push(number1 * number2);
-                    } else if (operator == '/') {
-                        operands.push(number1 / number2);
-                    } else if (operator == '%') {
-                        operands.push(number1 % number2);
-                    } else if (operator == '^') {
-                        operands.push(Math.pow(number1, number2));
-                    }
+                nResult.append(multi).append(" ");;
+                i--; // Decrement i to revisit the operator character
+            } else if (c == '(') { //check if there is a parenthesis
+                operator.push(c);
+            } else if (c == ')') {
+                while (operator.peek() != '(') { //if it encounters a closing parenthisis it appends all
+                    nResult.append(operator.pop()).append(" ");
                 }
-                operators.push(token.charAt(0));
+                operator.pop();
             } else {
-                // The token is a number.
-                operands.push(Double.parseDouble(token));
+                if (operator.isEmpty() || operator.peek() == '(') {
+                    operator.push(c);
+                } else {
+                    while (!operator.isEmpty() && checkPrecedence(c) <= checkPrecedence(operator.peek())) {
+                        nResult.append(operator.pop()).append(" ");
+                    }
+                    operator.push(c);
+                }
             }
         }
 
-        while (!operators.isEmpty()) {
-            char operator = operators.pop();
-            double number2 = operands.pop();
-            double number1 = operands.pop();
-
-            if (operator == '+') {
-                operands.push(number1 + number2);
-            } else if (operator == '-') {
-                operands.push(number1 - number2);
-            } else if (operator == '*') {
-                operands.push(number1 * number2);
-            } else if (operator == '/') {
-                operands.push(number1 / number2);
-            } else if (operator == '%') {
-                operands.push(number1 % number2);
-            } else if (operator == '^') {
-                operands.push(Math.pow(number1, number2));
-            }
+        while (!operator.isEmpty()) {
+            nResult.append(operator.pop()).append(" ");
         }
 
-        return operands.pop();
+        String result = nResult.toString();
+        return result;
     }
 
-    private static int getPrecedence(char operator) {
-        if (operator == '^') {
-            return 4;
-        } else if (operator == '*' || operator == '/' || operator == '%') {
-            return 3;
-        } else if (operator == '+' || operator == '-') {
-            return 2;
-        } else {
-            return 1;
+    double evaluateExpression(String expression){
+        double result = 0;
+        String[] token = expression.split(" ");
+        
+        for (int i = 0; i < token.length; i++){
+            if (token[i].equals("+") || token[i].equals("-") || token[i].equals("/") || token[i].equals("*") || token[i].equals("^")) {
+                double operand1 = Double.parseDouble(operand.pop());
+                double operand2 = Double.parseDouble(operand.pop());
+
+                switch (token[i]) {
+                    case "+":
+                        result = operand1 + operand2;
+                        break;
+                    case "-":
+                        result = operand1 - operand2;
+                        break;
+                    case "*":
+                        result = operand1 * operand2;
+                        break;
+                    case "/":
+                        result = operand1 / operand2;
+                    case "^":
+                        result = Math.pow(operand2, operand1);
+                        break;
+                }
+            operand.push(String.valueOf(result));
+            }
+            else {
+                operand.push(token[i]);
+            }
+        }
+        result = Double.parseDouble(operand.pop());
+        return result;
+    }
+
+    int checkPrecedence(char operator) {
+        switch (operator) {
+            case '^':
+                return 3;
+            case '*':
+            case '/':
+                return 2;
+            case '+':
+            case '-':
+                return 1;
+            default:
+                return 0;
         }
     }
 }
